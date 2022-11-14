@@ -34,9 +34,11 @@ public class Board {
     public void addTile(){
         int x = rand.nextInt(4);
         int y = rand.nextInt(4);
+        int[] tileValue = {2,4};
+        int index = rand.nextInt(tileValue.length);
 
         if(!matrix[x][y].isUsed()){
-            Tile tile = new Tile(2);
+            Tile tile = new Tile(tileValue[index]);
             matrix[x][y] = tile;
             tile.setUsed(true);
         }
