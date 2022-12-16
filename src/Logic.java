@@ -9,6 +9,10 @@ public class Logic {
         this.sc = sc;
     }
 
+    public Logic(Constants constants) {
+        this.constants = constants;
+    }
+
     public int getHighTile(Tile[][] matrix) {
         int high = matrix[0][0].getValue();
         for (Tile[] tiles : matrix) {
