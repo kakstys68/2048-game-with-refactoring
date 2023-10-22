@@ -6,7 +6,15 @@ public class Movement {
         this.renderer = renderer;
     }
 
-    public Movement() {
+    public void move(char input) {
+        switch (input) {
+            case 'w' -> moveUp(board);
+            case 'a' -> moveLeft(board);
+            case 's' -> moveDown(board);
+            case 'd' -> moveRight(board);
+            case 'q' -> renderer.quitting();
+            default -> renderer.badInput();
+        }
     }
 
     public void moveUp(Board board){
@@ -15,7 +23,7 @@ public class Movement {
             border = 0;
             for (int j = 0; j < board.getMatrix().length; j++) {
                 if(board.getMatrix()[j][i].getValue() != 0){
-                    verticalMove(j, i, "up", border);
+                    move(createTilePositionForMovement(j,i), Direction.UP, border);
                 }
             }
         }
@@ -28,36 +36,14 @@ public class Movement {
             for(int j = board.getMatrix().length - 1; j>=0; j--) {
                 if ( board.getMatrix()[j][i].getValue() != 0 ) {
                     if ( border >= j ) {
-                        verticalMove(j, i, "down", border);
+                        move(createTilePositionForMovement(j,i), Direction.DOWN, border);
                     }
                 }
             }
         }
         board.addTile();
     }
-    public void verticalMove(int row, int col, String direction, int border){
-        Tile currTile = board.getMatrix()[border][col];
-        Tile testTile = board.getMatrix()[row][col];
-        if(currTile.getValue() == 0 || currTile.getValue() == testTile.getValue()){
-            if (row > border || ( direction.equals( "down" ) && ( row < border ) ) ) {
-                int score = currTile.getValue() + testTile.getValue();
 
-                currTile.setValue(score);
-                currTile.setUsed(true);
-                testTile.setValue( 0 );
-                testTile.setUsed(false);
-            }
-        }
-        else{
-            if (direction.equals("down")) {
-                border--;
-            }
-            else {
-                border++;
-            }
-            verticalMove(row, col, direction, border);
-        }
-    }
 
     public void moveLeft(Board board){
         int border;
@@ -65,7 +51,7 @@ public class Movement {
             border = 0;
             for ( int j = 0; j < board.getMatrix().length; j++ ) {
                 if ( board.getMatrix()[i][j].getValue() != 0 ) {
-                    horizontalMove( i, j, "left", border );
+                    move(createTilePositionForMovement(i, j), Direction.LEFT, border);
                 }
             }
         }
@@ -78,45 +64,83 @@ public class Movement {
             for (int j = (board.getMatrix().length - 1 ); j >= 0; j--) {
                 if (board.getMatrix()[i][j].getValue() != 0) {
                     if (border >= j) {
-                        horizontalMove(i, j, "right", border);
+                        move(createTilePositionForMovement(i, j), Direction.RIGHT, border);
                     }
                 }
             }
         }
         board.addTile();
     }
-    public void horizontalMove(int row, int col, String direction, int border){
-        Tile currTile = board.getMatrix()[row][border];
-        Tile testTile = board.getMatrix()[row][col];
-        if (currTile.getValue() == 0 || currTile.getValue() == testTile.getValue()) {
-            if (col > border || (direction.equals("right") && (col < border))) {
-                int score = currTile.getValue() + testTile.getValue();
 
-                currTile.setValue(score);
-                currTile.setUsed(true);
-                testTile.setValue(0);
-                testTile.setUsed(false);
-            }
-        }
-        else {
-            if (direction.equals( "right" )) {
-                border--;
-            }
-            else {
-                border++;
-            }
-            horizontalMove(row, col, direction, border);
+    public void move(TilePosition tilePosition, Direction direction, int border) {
+        if(direction == Direction.RIGHT || direction == Direction.LEFT) {
+            horizontalMove(tilePosition, direction, border);
+        } else verticalMove(tilePosition, direction, border);
+    }
+
+    public void verticalMove(TilePosition tilePosition, Direction direction, int border){
+        final Tile currentTile = fetchCurrentTile(board, tilePosition, border, true);
+        final Tile targetTile = fetchTargetTile(board, tilePosition);
+
+        if(checkTileValue(currentTile, targetTile) && checkIfTilesCanBeMerged(tilePosition, direction, border, true)){
+            mergeTiles(currentTile, targetTile);
+        } else{
+            border = changeBorder(direction, border, Direction.DOWN);
+            verticalMove(tilePosition, direction, border);
         }
     }
 
-    public void move(char input) {
-        switch (input) {
-            case 'w' -> moveUp(board);
-            case 'a' -> moveLeft(board);
-            case 's' -> moveDown(board);
-            case 'd' -> moveRight(board);
-            case 'q' -> renderer.quitting();
-            default -> renderer.badInput();
+    public void horizontalMove(TilePosition tilePosition, Direction direction, int border){
+        final Tile currentTile = fetchCurrentTile(board, tilePosition, border, false);
+        final Tile targetTile = fetchTargetTile(board, tilePosition);
+
+        if (checkTileValue(currentTile, targetTile) && checkIfTilesCanBeMerged(tilePosition, direction, border, false)) {
+            mergeTiles(currentTile, targetTile);
+        } else {
+            border = changeBorder(direction, border, Direction.RIGHT);
+            horizontalMove(tilePosition, direction, border);
         }
+    }
+
+    private Tile fetchCurrentTile(Board board, TilePosition tilePosition, int border, boolean isVertical) {
+        if(isVertical) {
+            return board.getMatrix()[border][tilePosition.getCol()];
+        } else return board.getMatrix()[tilePosition.getRow()][border];
+    }
+
+    private Tile fetchTargetTile(Board board, TilePosition tilePosition) {
+        return board.getMatrix()[tilePosition.getRow()][tilePosition.getCol()];
+    }
+
+    private int changeBorder(Direction targetDirection, int border, Direction direction) {
+        if (targetDirection.equals(direction)) {
+            border--;
+        } else {
+            border++;
+        }
+        return border;
+    }
+
+    private TilePosition createTilePositionForMovement(int row, int col){
+        return new TilePosition(row, col);
+    }
+
+    private boolean checkTileValue(Tile currentTile, Tile targetTile) {
+        return currentTile.getValue() == 0 || currentTile.getValue() == targetTile.getValue();
+    }
+
+    private boolean checkIfTilesCanBeMerged(TilePosition tilePosition, Direction direction, int border, boolean isVertical) {
+        if(isVertical) {
+            return tilePosition.getRow() > border || Direction.DOWN.equals(direction) && (tilePosition.getCol() < border);
+        } else return tilePosition.getCol() > border || Direction.RIGHT.equals(direction) && (tilePosition.getCol() < border);
+    }
+
+    private void mergeTiles(Tile currentTile, Tile targetTile) {
+        int score = currentTile.getValue() + targetTile.getValue();
+
+        currentTile.setValue(score);
+        currentTile.setUsed(true);
+        targetTile.setValue(0);
+        targetTile.setUsed(false);
     }
 }

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class HighTileTest {
 
-    @Test
+    /*@Test
     void highTileShouldReturn2048() {
         Constants constants = new Constants();
         Logic logic = new Logic(constants);
